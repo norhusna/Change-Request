@@ -1,5 +1,5 @@
-<?php 
-  include("../functions.php");
+<?php
+	include("../functions.php");
 
   if((!isset($_SESSION['uid']) && !isset($_SESSION['username']) && isset($_SESSION['user_level'])) ) 
     header("Location: login.php");
@@ -7,27 +7,9 @@
   if($_SESSION['user_level'] != "staff")
     header("Location: login.php");
 
-  /*
-  echo $_SESSION['uid'];
-  echo $_SESSION['username'];
-  echo $_SESSION['user_level'];
-  */
-
-  function getStatus () {
-      global $sqlconnection;
-      $checkOnlineQuery = "SELECT status FROM tbl_staff WHERE staffID = {$_SESSION['uid']}";
-
-      if ($result = $sqlconnection->query($checkOnlineQuery)) {
-          
-        if ($row = $result->fetch_array(MYSQLI_ASSOC)) {
-          return $row['status'];
-        }
-      }
-
-      else {
-          echo "Something wrong the query!";
-          echo $sqlconnection->error;
-      }
+  if($_SESSION['user_role'] != "waiter"){
+    echo ("<script>window.alert('Available for waiter only!'); window.location.href='index.php';</script>");
+    exit();
   }
 
 ?>
@@ -43,7 +25,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Dashboard - FOS Staff</title>
+    <title>Order - FOS Staff</title>
 
     <!-- Bootstrap core CSS-->
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -134,40 +116,76 @@
             <li class="breadcrumb-item">
               <a href="index.php">Dashboard</a>
             </li>
-            <li class="breadcrumb-item active">Overview</li>
+            <li class="breadcrumb-item active">Order</li>
           </ol>
 
           <!-- Page Content -->
-          <h1>Staff Panel</h1>
+          <h1>Order Management</h1>
           <hr>
-          <p>Manage staff work here.</p>
+          <p>Manage new order in this page.</p>
 
           <div class="row">
-            <div class="col-lg-9">
+            <div class="col-lg-6">
               <div class="card mb-3">
                 <div class="card-header">
                   <i class="fas fa-utensils"></i>
-                  Latest Ready Order</div>
+                  Take Order</div>
                 <div class="card-body">
-                	<table id="orderTable" class="table table-striped table-bordered width="100%" cellspacing="0">
-                	</table>
+                  <table class="table table-bordered text-center" width="100%" cellspacing="0">
+                  	<tr>
+                  	<?php 
+						$menuQuery = "SELECT * FROM tbl_menu";
+
+						if ($menuResult = $sqlconnection->query($menuQuery)) {
+							$counter = 0;
+							while($menuRow = $menuResult->fetch_array(MYSQLI_ASSOC)) { 
+								if ($counter >=3) {
+									echo "</tr>";
+									$counter = 0;
+								}
+
+								if($counter == 0) {
+									echo "<tr>";
+								} 
+								?>
+								<td><button style="margin-bottom:4px;white-space: normal;" class="btn btn-primary" onclick="displayItem(<?php echo $menuRow['menuID']?>)"><?php echo $menuRow['menuName']?></button></td>
+							<?php
+
+							$counter++;
+							}
+						}
+					?>
+					</tr>
+                  </table>
+                  <table id="tblItem" class="table table-bordered text-center" width="100%" cellspacing="0"></table>
+
+                <div id="qtypanel" hidden="">
+        					Quantitiy : <input id="qty" required="required" type="number" min="1" max="50" name="qty" value="1" />
+        					<button class="btn btn-info" onclick = "insertItem()">Done</button>
+        					<br><br>
+				</div>
+
                 </div>
-                <div class="card-footer small text-muted"><i>Refresh every 3 second(s)</i></div>
               </div>
             </div>
 
-            <div class="col-lg-3">
-              <div class="card mb-3 text-center">
+            <div class="col-lg-6">
+              <div class="card mb-3">
                 <div class="card-header">
                   <i class="fas fa-chart-bar""></i>
-                  Status</div>
+                  Order List</div>
                 <div class="card-body">
-                  Hello , <b><?php echo $_SESSION['username'] ?></b><hr>
-                  Role : <b><?php echo ucfirst($_SESSION['user_role']) ?></b><hr>
-                  <form action="statuschange.php" method="POST">
-                    <input type="hidden" id="staffid" name="staffid" value=" <?php echo $_SESSION['uid']; ?>" />
-                      <?php if (getStatus()=='Online') echo "<input type='submit' class='btn btn-success myBtn' name='btnStatus' value='Online'>"; else echo"<input type='submit' class='btn btn-danger myBtn' name='btnStatus' value='Offline'>" ?>
-                  </form>
+                    <form action="insertorder.php" method="POST">
+						<table id="tblOrderList" class="table table-bordered text-center" width="100%" cellspacing="0">
+							<tr>
+								<th>Name</th>
+								<th>Price</th>
+								<th>Qty</th>
+								<th>Total (RM)</th>
+							</tr>
+						</table>
+						<input class="btn btn-success" type="submit" name="sentorder" value="Send">
+					</form>
                 </div>
               </div>
             </div>
@@ -227,20 +245,54 @@
 
     <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
 	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
-	<script type="text/javascript">
 
-    $( document ).ready(function() {
-        refreshTableOrder();
-    });
+	<script>
+		var currentItemID = null;
 
-    function refreshTableOrder() {
-      $( "#orderTable" ).load( "displayorder.php?cmd=currentready" );
-    }
+		function displayItem (id) {
+			$.ajax({
+				url : "displayitem.php",
+					type : 'POST',
+					data : { btnMenuID : id },
 
-    //refresh order current list every 3 secs
-    setInterval(function(){ refreshTableOrder(); }, 3000);
+					success : function(output) {
+						$("#tblItem").html(output);
+					}
+				});
+		}
 
-  </script>
+		function insertItem () {
+			var id = currentItemID;
+			var quantity = $("#qty").val();
+			$.ajax({
+				url : "displayitem.php",
+					type : 'POST',
+					data : { 
+						btnMenuItemID : id,
+						qty : quantity 
+					},
+
+					success : function(output) {
+						$("#tblOrderList").append(output);
+						$("#qtypanel").prop('hidden',true);
+					}
+				});
+
+			$("#qty").val(1);
+		}
+
+		function setQty (id) {
+			currentItemID = id;
+			$("#qtypanel").prop('hidden',false);
+		}
+
+		$(document).on('click','.deleteBtn', function(event){
+		        event.preventDefault();
+		        $(this).closest('tr').remove();
+		        return false;
+		    });
+
+	</script>
 
   </body>
 

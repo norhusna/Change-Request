@@ -1,8 +1,8 @@
 <?php 
-	include("../functions.php");
+    include("../functions.php");
 
     if((isset($_SESSION['uid']) && isset($_SESSION['username']) && isset($_SESSION['user_level'])) )  {
-        if($_SESSION['user_level'] == "admin") {
+        if($_SESSION['user_level'] == "staff") {
           header("Location: index.php");
         }
     }
@@ -19,7 +19,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>FOS Admin - Login</title>
+    <title>FOS Staff - Login</title>
 
     <!-- Bootstrap core CSS-->
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -36,7 +36,7 @@
 
     <div class="container">
       <div class="card card-login mx-auto mt-5">
-        <div class="card-header">Administrator Login</div>
+        <div class="card-header">Staff Login</div>
         <div class="card-body">
           <form id="loginform">
             <div class="form-group">
@@ -56,10 +56,11 @@
                 </div>
             <input type="submit" class="btn btn-primary btn-block" form="loginform" name="btnlogin" value="Login" />
           </form>
-		   <a href="../index.php" class="btn btn-primary btn-block">BACK</a>
+		  <a href="../index.php" class="btn btn-primary btn-block">BACK</a>
         </div>
       </div>
     </div>
+	</div>
 
     <!-- Bootstrap core JavaScript-->
     <script src="vendor/jquery/jquery.min.js"></script>

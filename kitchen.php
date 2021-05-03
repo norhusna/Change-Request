@@ -1,4 +1,4 @@
-<?php 
+<?php
   include("../functions.php");
 
   if((!isset($_SESSION['uid']) && !isset($_SESSION['username']) && isset($_SESSION['user_level'])) ) 
@@ -7,29 +7,11 @@
   if($_SESSION['user_level'] != "staff")
     header("Location: login.php");
 
-  /*
-  echo $_SESSION['uid'];
-  echo $_SESSION['username'];
-  echo $_SESSION['user_level'];
-  */
-
-  function getStatus () {
-      global $sqlconnection;
-      $checkOnlineQuery = "SELECT status FROM tbl_staff WHERE staffID = {$_SESSION['uid']}";
-
-      if ($result = $sqlconnection->query($checkOnlineQuery)) {
-          
-        if ($row = $result->fetch_array(MYSQLI_ASSOC)) {
-          return $row['status'];
-        }
-      }
-
-      else {
-          echo "Something wrong the query!";
-          echo $sqlconnection->error;
-      }
+  if($_SESSION['user_role'] != "chef") {
+    echo ("<script>window.alert('Available for chef only!'); window.location.href='index.php';</script>");
+    exit();
   }
-
+  
 ?>
 
 <!DOCTYPE html>
@@ -134,42 +116,33 @@
             <li class="breadcrumb-item">
               <a href="index.php">Dashboard</a>
             </li>
-            <li class="breadcrumb-item active">Overview</li>
+            <li class="breadcrumb-item active">Kitchen</li>
           </ol>
 
           <!-- Page Content -->
-          <h1>Staff Panel</h1>
+          <h1>Kitchen Management</h1>
           <hr>
-          <p>Manage staff work here.</p>
+          <p>Manage order that been sent to here.</p>
 
-          <div class="row">
-            <div class="col-lg-9">
-              <div class="card mb-3">
-                <div class="card-header">
-                  <i class="fas fa-utensils"></i>
-                  Latest Ready Order</div>
-                <div class="card-body">
-                	<table id="orderTable" class="table table-striped table-bordered width="100%" cellspacing="0">
-                	</table>
-                </div>
-                <div class="card-footer small text-muted"><i>Refresh every 3 second(s)</i></div>
-              </div>
-            </div>
-
-            <div class="col-lg-3">
-              <div class="card mb-3 text-center">
-                <div class="card-header">
-                  <i class="fas fa-chart-bar""></i>
-                  Status</div>
-                <div class="card-body">
-                  Hello , <b><?php echo $_SESSION['username'] ?></b><hr>
-                  Role : <b><?php echo ucfirst($_SESSION['user_role']) ?></b><hr>
-                  <form action="statuschange.php" method="POST">
-                    <input type="hidden" id="staffid" name="staffid" value=" <?php echo $_SESSION['uid']; ?>" />
-                      <?php if (getStatus()=='Online') echo "<input type='submit' class='btn btn-success myBtn' name='btnStatus' value='Online'>"; else echo"<input type='submit' class='btn btn-danger myBtn' name='btnStatus' value='Offline'>" ?>
-                  </form>
-                </div>
-              </div>
+          <div class="card mb-3">
+            <div class="card-header">
+              <i class="fas fa-utensils"></i>
+              Current Order List</div>
+            <div class="card-body">
+            	<table id="tblCurrentOrder" class="table table-bordered text-center" width="100%" cellspacing="0">
+					<thead>
+						<th>Order #</th>
+						<th>Category</th>
+						<th>Menu Name</th>
+						<th class='text-center'>Quantity</th>
+						<th class='text-center'>Status</th>
+						<th class='text-center'>Options</th>
+					</thead>
+					
+					<tbody id="tblBodyCurrentOrder">
+						
+					</tbody>
+				</table>
             </div>
           </div>
 
@@ -225,22 +198,38 @@
     <!-- Custom scripts for all pages-->
     <script src="js/sb-admin.min.js"></script>
 
-    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
-	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
-	<script type="text/javascript">
+    <script type="text/javascript">
 
-    $( document ).ready(function() {
-        refreshTableOrder();
-    });
+		$( document ).ready(function() {
+	    	refreshTableOrder();
+		});
 
-    function refreshTableOrder() {
-      $( "#orderTable" ).load( "displayorder.php?cmd=currentready" );
-    }
+		function refreshTableOrder() {
+			$( "#tblBodyCurrentOrder" ).load( "displayorder.php?cmd=currentorder" );
+		}
 
-    //refresh order current list every 3 secs
-    setInterval(function(){ refreshTableOrder(); }, 3000);
 
-  </script>
+		function editStatus (objBtn,orderID) {
+			var status = objBtn.value;
+
+			$.ajax({
+				url : "editstatus.php",
+					type : 'POST',
+					data : {
+						orderID : orderID,
+						status : status 
+					},
+
+					success : function(output) {
+						refreshTableOrder();
+					}
+				});
+		}
+
+		//refresh order current list every 3 secs
+		setInterval(function(){ refreshTableOrder(); }, 3000);
+
+	</script>
 
   </body>
 
